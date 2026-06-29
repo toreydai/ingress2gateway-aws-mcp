@@ -1,0 +1,27 @@
+# Standard Kubernetes Ingress backends are namespace-local. This example keeps the
+# backend Service in the same namespace; cross-namespace backendRefs are only
+# generated when the source input explicitly carries a backend namespace.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cross-ns-app
+  namespace: frontend
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.example.com
+      secretName: api-tls
+  rules:
+    - host: api.example.com
+      http:
+        paths:
+          - path: /v1
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 8080

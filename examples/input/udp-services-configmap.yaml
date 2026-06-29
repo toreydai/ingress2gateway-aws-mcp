@@ -1,0 +1,10 @@
+# Nginx udp-services ConfigMap
+# Format: "port": "namespace/service:targetPort"
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: udp-services
+  namespace: ingress-nginx
+data:
+  "53": "kube-system/kube-dns:53"
+  "1194": "vpn/openvpn-svc:1194"

@@ -1,0 +1,81 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: default-gateway
+  namespace: default
+spec:
+  gatewayClassName: aws-alb
+  listeners:
+  - name: https-grpc-example-com
+    port: 443
+    protocol: HTTPS
+    hostname: grpc.example.com
+    tls:
+      mode: Terminate
+      options:
+        gateway.k8s.aws/certificate-discovery: acm
+  - name: http
+    port: 80
+    protocol: HTTP
+  infrastructure:
+    parametersRef:
+      group: gateway.k8s.aws
+      kind: LoadBalancerConfiguration
+      name: default-gateway-lb-config
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: aws-alb
+spec:
+  controllerName: gateway.k8s.aws/alb
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GRPCRoute
+metadata:
+  name: grpc-app-grpc-example-com
+  namespace: default
+spec:
+  parentRefs:
+  - name: default-gateway
+    namespace: default
+    sectionName: https-grpc-example-com
+  hostnames:
+  - grpc.example.com
+  rules:
+  - matches:
+    - method:
+        service: helloworld.Greeter
+    backendRefs:
+    - name: greeter-svc
+      port: 50051
+
+---
+apiVersion: gateway.k8s.aws/v1beta1
+kind: LoadBalancerConfiguration
+metadata:
+  name: default-gateway-lb-config
+  namespace: default
+spec:
+  scheme: internet-facing
+
+---
+apiVersion: gateway.k8s.aws/v1beta1
+kind: TargetGroupConfiguration
+metadata:
+  name: greeter-svc-tg-config
+  namespace: default
+spec:
+  defaultConfiguration:
+    targetType: ip
+    healthCheckConfig:
+      healthCheckPath: /
+      healthCheckProtocol: HTTP
+      healthCheckInterval: 30
+      healthyThresholdCount: 2
+      unhealthyThresholdCount: 3
+  targetReference:
+    name: greeter-svc

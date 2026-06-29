@@ -1,0 +1,225 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: default-gateway
+  namespace: default
+spec:
+  gatewayClassName: aws-alb
+  listeners:
+  - name: https-app-example-com
+    port: 443
+    protocol: HTTPS
+    hostname: app.example.com
+    tls:
+      mode: Terminate
+      options:
+        gateway.k8s.aws/certificate-discovery: acm
+  - name: http
+    port: 80
+    protocol: HTTP
+  infrastructure:
+    parametersRef:
+      group: gateway.k8s.aws
+      kind: LoadBalancerConfiguration
+      name: default-gateway-lb-config
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: nlb-gateway
+  namespace: default
+spec:
+  gatewayClassName: aws-nlb
+  listeners:
+  - name: tcp-5432
+    port: 5432
+    protocol: TCP
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: tcp-6379
+    port: 6379
+    protocol: TCP
+    allowedRoutes:
+      namespaces:
+        from: All
+  infrastructure:
+    parametersRef:
+      group: gateway.k8s.aws
+      kind: LoadBalancerConfiguration
+      name: nlb-gateway-lb-config
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: aws-alb
+spec:
+  controllerName: gateway.k8s.aws/alb
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: aws-nlb
+spec:
+  controllerName: gateway.k8s.aws/nlb
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: basic-app-app-example-com-redirect
+  namespace: default
+spec:
+  parentRefs:
+  - name: default-gateway
+    namespace: default
+    sectionName: http
+  hostnames:
+  - app.example.com
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    filters:
+    - type: RequestRedirect
+      requestRedirect:
+        scheme: https
+        statusCode: 302
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: basic-app-app-example-com
+  namespace: default
+spec:
+  parentRefs:
+  - name: default-gateway
+    namespace: default
+    sectionName: https-app-example-com
+  hostnames:
+  - app.example.com
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api
+    backendRefs:
+    - name: api-svc
+      port: 8080
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /web
+    backendRefs:
+    - name: web-svc
+      port: 3000
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TCPRoute
+metadata:
+  name: tcp-5432
+  namespace: default
+spec:
+  parentRefs:
+  - name: nlb-gateway
+    namespace: default
+    sectionName: tcp-5432
+  rules:
+  - backendRefs:
+    - name: postgres-svc
+      port: 5432
+
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TCPRoute
+metadata:
+  name: tcp-6379
+  namespace: default
+spec:
+  parentRefs:
+  - name: nlb-gateway
+    namespace: default
+    sectionName: tcp-6379
+  rules:
+  - backendRefs:
+    - name: redis-svc
+      port: 6379
+
+---
+apiVersion: gateway.k8s.aws/v1beta1
+kind: LoadBalancerConfiguration
+metadata:
+  name: default-gateway-lb-config
+  namespace: default
+spec:
+  scheme: internet-facing
+  loadBalancerAttributes:
+  - key: idle_timeout.timeout_seconds
+    value: '60'
+
+---
+apiVersion: gateway.k8s.aws/v1beta1
+kind: LoadBalancerConfiguration
+metadata:
+  name: nlb-gateway-lb-config
+  namespace: default
+spec:
+  scheme: internet-facing
+  loadBalancerAttributes:
+  - key: idle_timeout.timeout_seconds
+    value: '60'
+
+---
+apiVersion: gateway.k8s.aws/v1beta1
+kind: TargetGroupConfiguration
+metadata:
+  name: api-svc-tg-config
+  namespace: default
+spec:
+  defaultConfiguration:
+    targetType: ip
+    healthCheckConfig:
+      healthCheckPath: /
+      healthCheckProtocol: HTTP
+      healthCheckInterval: 30
+      healthyThresholdCount: 2
+      unhealthyThresholdCount: 3
+  targetReference:
+    name: api-svc
+
+---
+apiVersion: gateway.k8s.aws/v1beta1
+kind: TargetGroupConfiguration
+metadata:
+  name: web-svc-tg-config
+  namespace: default
+spec:
+  defaultConfiguration:
+    targetType: ip
+    healthCheckConfig:
+      healthCheckPath: /
+      healthCheckProtocol: HTTP
+      healthCheckInterval: 30
+      healthyThresholdCount: 2
+      unhealthyThresholdCount: 3
+  targetReference:
+    name: web-svc

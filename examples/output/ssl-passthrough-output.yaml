@@ -1,0 +1,105 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: default-gateway
+  namespace: default
+spec:
+  gatewayClassName: aws-alb
+  listeners:
+  - name: http
+    port: 80
+    protocol: HTTP
+  infrastructure:
+    parametersRef:
+      group: gateway.k8s.aws
+      kind: LoadBalancerConfiguration
+      name: default-gateway-lb-config
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: default-nlb-gateway
+  namespace: default
+spec:
+  gatewayClassName: aws-nlb
+  listeners:
+  - name: tls-passthrough
+    port: 443
+    protocol: TLS
+    tls:
+      mode: Passthrough
+  infrastructure:
+    parametersRef:
+      group: gateway.k8s.aws
+      kind: LoadBalancerConfiguration
+      name: default-nlb-gateway-lb-config
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: aws-alb
+spec:
+  controllerName: gateway.k8s.aws/alb
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: aws-nlb
+spec:
+  controllerName: gateway.k8s.aws/nlb
+
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TLSRoute
+metadata:
+  name: passthrough-app-db-example-com
+  namespace: default
+spec:
+  parentRefs:
+  - name: default-nlb-gateway
+    namespace: default
+  hostnames:
+  - db.example.com
+  rules:
+  - backendRefs:
+    - name: mysql-svc
+      port: 3306
+
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TLSRoute
+metadata:
+  name: passthrough-app-redis-example-com
+  namespace: default
+spec:
+  parentRefs:
+  - name: default-nlb-gateway
+    namespace: default
+  hostnames:
+  - redis.example.com
+  rules:
+  - backendRefs:
+    - name: redis-svc
+      port: 6379
+
+---
+apiVersion: gateway.k8s.aws/v1beta1
+kind: LoadBalancerConfiguration
+metadata:
+  name: default-gateway-lb-config
+  namespace: default
+spec:
+  scheme: internet-facing
+
+---
+apiVersion: gateway.k8s.aws/v1beta1
+kind: LoadBalancerConfiguration
+metadata:
+  name: default-nlb-gateway-lb-config
+  namespace: default
+spec:
+  scheme: internet-facing

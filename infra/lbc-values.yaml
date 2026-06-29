@@ -1,0 +1,20 @@
+# Helm values for AWS Load Balancer Controller
+# helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+#   -n kube-system -f infra/lbc-values.yaml
+
+clusterName: gateway-demo    # 与 cluster.yaml metadata.name 保持一致
+region: us-east-1            # 与 cluster.yaml metadata.region 保持一致
+vpcId: <VPC_ID>              # eksctl create cluster 完成后填入，见 cluster.yaml 步骤 4
+
+# IAM role created by eksctl iamserviceaccount
+serviceAccount:
+  create: false
+  name: aws-load-balancer-controller
+
+# Enable Gateway API support (ALB + NLB)
+featureGates:
+  ALBGatewayAPI: true
+  NLBGatewayAPI: true
+
+# High availability: 2 replicas
+replicaCount: 2

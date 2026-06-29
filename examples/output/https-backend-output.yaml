@@ -1,0 +1,164 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: default-gateway
+  namespace: default
+spec:
+  gatewayClassName: aws-alb
+  listeners:
+  - name: https-secure-api-example-com
+    port: 443
+    protocol: HTTPS
+    hostname: secure-api.example.com
+    tls:
+      mode: Terminate
+      options:
+        gateway.k8s.aws/certificate-discovery: acm
+  - name: http
+    port: 80
+    protocol: HTTP
+  infrastructure:
+    parametersRef:
+      group: gateway.k8s.aws
+      kind: LoadBalancerConfiguration
+      name: default-gateway-lb-config
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: aws-alb
+spec:
+  controllerName: gateway.k8s.aws/alb
+
+---
+apiVersion: gateway.networking.k8s.io/v1alpha3
+kind: BackendTLSPolicy
+metadata:
+  name: api-svc-backend-tls
+  namespace: default
+spec:
+  targetRefs:
+  - group: ''
+    kind: Service
+    name: api-svc
+  validation:
+    hostname: api-svc.default.svc.cluster.local
+    wellKnownCACertificates: System
+
+---
+apiVersion: gateway.networking.k8s.io/v1alpha3
+kind: BackendTLSPolicy
+metadata:
+  name: api-v2-svc-backend-tls
+  namespace: default
+spec:
+  targetRefs:
+  - group: ''
+    kind: Service
+    name: api-v2-svc
+  validation:
+    hostname: api-v2-svc.default.svc.cluster.local
+    wellKnownCACertificates: System
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: https-backend-app-secure-api-example-com-redirect
+  namespace: default
+spec:
+  parentRefs:
+  - name: default-gateway
+    namespace: default
+    sectionName: http
+  hostnames:
+  - secure-api.example.com
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    filters:
+    - type: RequestRedirect
+      requestRedirect:
+        scheme: https
+        statusCode: 302
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: https-backend-app-secure-api-example-com
+  namespace: default
+spec:
+  parentRefs:
+  - name: default-gateway
+    namespace: default
+    sectionName: https-secure-api-example-com
+  hostnames:
+  - secure-api.example.com
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /v1
+    backendRefs:
+    - name: api-svc
+      port: 8443
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /v2
+    backendRefs:
+    - name: api-v2-svc
+      port: 8443
+
+---
+apiVersion: gateway.k8s.aws/v1beta1
+kind: LoadBalancerConfiguration
+metadata:
+  name: default-gateway-lb-config
+  namespace: default
+spec:
+  scheme: internet-facing
+  loadBalancerAttributes:
+  - key: idle_timeout.timeout_seconds
+    value: '30'
+
+---
+apiVersion: gateway.k8s.aws/v1beta1
+kind: TargetGroupConfiguration
+metadata:
+  name: api-svc-tg-config
+  namespace: default
+spec:
+  defaultConfiguration:
+    targetType: ip
+    healthCheckConfig:
+      healthCheckPath: /
+      healthCheckProtocol: HTTPS
+      healthCheckInterval: 30
+      healthyThresholdCount: 2
+      unhealthyThresholdCount: 3
+  targetReference:
+    name: api-svc
+
+---
+apiVersion: gateway.k8s.aws/v1beta1
+kind: TargetGroupConfiguration
+metadata:
+  name: api-v2-svc-tg-config
+  namespace: default
+spec:
+  defaultConfiguration:
+    targetType: ip
+    healthCheckConfig:
+      healthCheckPath: /
+      healthCheckProtocol: HTTPS
+      healthCheckInterval: 30
+      healthyThresholdCount: 2
+      unhealthyThresholdCount: 3
+  targetReference:
+    name: api-v2-svc

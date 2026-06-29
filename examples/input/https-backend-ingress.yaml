@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: https-backend-app
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - secure-api.example.com
+      secretName: secure-api-tls
+  rules:
+    - host: secure-api.example.com
+      http:
+        paths:
+          - path: /v1
+            pathType: Prefix
+            backend:
+              service:
+                name: api-svc
+                port:
+                  number: 8443
+          - path: /v2
+            pathType: Prefix
+            backend:
+              service:
+                name: api-v2-svc
+                port:
+                  number: 8443

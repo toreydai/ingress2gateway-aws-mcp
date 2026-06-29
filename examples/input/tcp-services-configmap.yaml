@@ -1,0 +1,10 @@
+# Nginx tcp-services ConfigMap
+# Format: "port": "namespace/service:targetPort"
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tcp-services
+  namespace: ingress-nginx
+data:
+  "5432": "default/postgres-svc:5432"
+  "6379": "default/redis-svc:6379"
