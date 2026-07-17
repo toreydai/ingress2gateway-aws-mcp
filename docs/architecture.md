@@ -67,6 +67,58 @@
 └──────────────┘
 ```
 
+### 2.1 架构图（Mermaid）
+
+```mermaid
+flowchart TB
+  User["用户\nKiro IDE / Kiro CLI / Claude Code / Claude Desktop"]
+
+  subgraph MCP["MCP Server (src/server.py, stdio)"]
+    T1["check_prerequisites"]
+    T2["analyze_ingress"]
+    T3["convert_to_gateway_api"]
+    T4["generate_migration_report"]
+    T5["validate_output"]
+  end
+
+  subgraph Converter["转换层"]
+    Conv["converter.py\nrun() / convert()"]
+    Go["ingress2gateway\nGo 二进制（可选）"]
+  end
+
+  subgraph AWSLayer["AWS 后处理层 (src/aws/)"]
+    GW["gateway.py\ninject / fix_tls / split / merge"]
+    CRD["crd.py\nLoadBalancerConfiguration\nTargetGroupConfiguration\nListenerRuleConfiguration"]
+    Anno["annotation_map.py\n注解兼容性分类"]
+  end
+
+  subgraph Support["Support 层"]
+    Pre["preflight.py"]
+    Rep["reporter.py"]
+    Val["validator.py"]
+  end
+
+  subgraph EKS["目标 EKS 集群"]
+    LBC["AWS Load Balancer Controller ≥2.14"]
+    GWAPI["Gateway API CRDs\nGateway / HTTPRoute / GRPCRoute"]
+    ALBNLB["ALB / NLB"]
+  end
+
+  User -->|MCP 协议| MCP
+  T1 --> Pre
+  T2 --> Anno
+  T3 --> Conv
+  T3 --> GW
+  T3 --> CRD
+  T4 --> Rep
+  T5 --> Val
+  Conv -.可选调用.-> Go
+  GW --> CRD
+  T3 -->|可 kubectl apply 的 YAML| GWAPI
+  GWAPI --> LBC
+  LBC --> ALBNLB
+```
+
 ---
 
 ## 3. 模块职责
@@ -99,7 +151,7 @@ ingress2gateway-aws-mcp/
 ├── docs/
 │   ├── architecture.md        # 架构说明、模块职责、转换管道数据流
 │   ├── annotation-reference.md  # Nginx 注解兼容性速查表
-│   └── ops.md                 # 部署手册 + 故障排查
+│   └── deployment.md                 # 部署手册 + 故障排查
 ├── Dockerfile
 └── pyproject.toml
 ```

@@ -30,7 +30,7 @@ iam:
         namespace: kube-system
       attachPolicyARNs:
         - arn:aws:iam::<ACCOUNT_ID>:policy/AWSLoadBalancerControllerIAMPolicy
-      # 先按 ops.md §6.5 创建 IAM Policy，获得 ARN 后替换上方 <ACCOUNT_ID>
+      # 先按 deployment.md §6.5 创建 IAM Policy，获得 ARN 后替换上方 <ACCOUNT_ID>
 
 # ── Managed Node Group ───────────────────────────────────────────────────────
 managedNodeGroups:

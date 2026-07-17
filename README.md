@@ -120,7 +120,7 @@ AI 调用 generate_migration_report → 返回 Markdown 报告
 
 示例输入文件见 [`examples/input/`](examples/input/)，对应转换结果见 [`examples/output/`](examples/output/)。
 
-## 项目结构
+## 目录结构
 
 详见 [`docs/architecture.md`](docs/architecture.md#3-模块职责)。
 
@@ -150,7 +150,7 @@ Ingress YAML
 |------|------|
 | [`docs/architecture.md`](docs/architecture.md) | 模块职责、转换管道数据流、AWS 资源模型、关键设计决策 |
 | [`docs/annotation-reference.md`](docs/annotation-reference.md) | Nginx 注解兼容性速查表（auto / partial / warning / error 分类）|
-| [`docs/ops.md`](docs/ops.md) | 部署手册（本地/Docker/Kiro+Claude 接入、EKS 前置条件）+ 故障排查 |
+| [`docs/deployment.md`](docs/deployment.md) | 部署手册（本地/Docker/Kiro+Claude 接入、EKS 前置条件）+ 故障排查 |
 
 ## 开发
 
@@ -161,7 +161,7 @@ pytest tests/ -v
 
 ## License
 
-MIT
+MIT - see the [LICENSE](LICENSE) file for details.
 
 ## 免责声明
 
