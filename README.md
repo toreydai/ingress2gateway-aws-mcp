@@ -165,4 +165,8 @@ MIT - see the [LICENSE](LICENSE) file for details.
 
 ## 免责声明
 
-本项目仅供学习与技术参考，不构成生产部署方案。使用本工具生成的 Gateway API YAML 在 apply 到集群前，请结合实际业务进行安全评估与调整。部署过程中会在 AWS 上创建 EKS 集群、ALB/NLB 及相关资源并产生费用，请在实验结束后及时清理。作者不对因使用本项目产生的任何费用或损失承担责任。本项目与 Amazon Web Services 及 Kubernetes SIGs 无官方关联，相关服务的可用性与定价以各方官方文档为准。
+- 本项目仅供学习与技术参考，不构成生产部署方案。
+- 使用本工具生成的 Gateway API YAML 在 apply 到集群前，请结合实际业务进行安全评估与调整。
+- 部署过程中会在 AWS 上创建 EKS 集群、ALB/NLB 及相关资源并产生费用，请在实验结束后及时清理。
+- 作者不对因使用本项目产生的任何费用或损失承担责任。
+- 本项目与 Amazon Web Services 及 Kubernetes SIGs 无官方关联，相关服务的可用性与定价以各方官方文档为准。
